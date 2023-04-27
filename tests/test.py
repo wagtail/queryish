@@ -23,6 +23,11 @@ class CounterSourceWithoutCount(Queryish):
         for i in range(start, stop):
             yield i
 
+    def clone(self, **kwargs):
+        clone = super().clone(**kwargs)
+        clone.run_query_call_count = 0
+        return clone
+
 
 class CounterSource(CounterSourceWithoutCount):
     def __init__(self):
@@ -33,6 +38,11 @@ class CounterSource(CounterSourceWithoutCount):
         self.run_count_call_count += 1
         start, stop = self._get_real_limits()
         return stop - start
+
+    def clone(self, **kwargs):
+        clone = super().clone(**kwargs)
+        clone.run_count_call_count = 0
+        return clone
 
 
 class TestQueryish(TestCase):
@@ -128,3 +138,11 @@ class TestQueryish(TestCase):
         self.assertEqual(qs1.run_query_call_count, 0)
         self.assertEqual(qs2.run_query_call_count, 0)
         self.assertEqual(qs3.run_query_call_count, 1)
+
+    def test_slice_reuses_results(self):
+        qs1 = CounterSource()
+        list(qs1)
+        qs2 = qs1[1:9]
+        self.assertEqual(list(qs2), [1, 2, 3, 4, 5, 6, 7, 8])
+        self.assertEqual(qs1.run_query_call_count, 1)
+        self.assertEqual(qs2.run_query_call_count, 0)

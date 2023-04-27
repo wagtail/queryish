@@ -58,6 +58,9 @@ class Queryish:
                 # new limit imposed
                 new_limit = key.stop - (key.start or 0)
 
-            return self.clone(offset=new_offset, limit=new_limit)
+            clone = self.clone(offset=new_offset, limit=new_limit)
+            if self._results:
+                clone._results = self._results[key]
+            return clone
         else:
             raise NotImplementedError("%r does not support indexing" % self.__class__.__name__)
