@@ -70,11 +70,19 @@ class TestQueryish(TestCase):
         self.assertEqual(qs.run_count_call_count, 1)
         self.assertEqual(qs.run_query_call_count, 0)
 
-    def test_len_uses_count(self):
+    def test_count_uses_results_when_available(self):
+        qs = CounterSource()
+        list(qs)
+        self.assertEqual(qs.count(), 10)
+        self.assertEqual(qs.count(), 10)
+        self.assertEqual(qs.run_count_call_count, 0)
+        self.assertEqual(qs.run_query_call_count, 1)
+
+    def test_len_does_not_use_count(self):
         qs = CounterSource()
         self.assertEqual(len(qs), 10)
-        self.assertEqual(qs.run_count_call_count, 1)
-        self.assertEqual(qs.run_query_call_count, 0)
+        self.assertEqual(qs.run_count_call_count, 0)
+        self.assertEqual(qs.run_query_call_count, 1)
 
     def test_slicing(self):
         qs = CounterSource()[1:3]

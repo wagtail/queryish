@@ -28,11 +28,17 @@ class Queryish:
 
     def count(self):
         if self._count is None:
-            self._count = self.run_count()
+            if self._results is not None:
+                self._count = len(self._results)
+            else:
+                self._count = self.run_count()
         return self._count
 
     def __len__(self):
-        return self.count()
+        # __len__ must run the full query
+        if self._results is None:
+            self._results = list(self.run_query())
+        return len(self._results)
 
     def clone(self, **kwargs):
         clone = copy.copy(self)
