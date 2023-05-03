@@ -18,11 +18,17 @@ class Queryish:
 
     def __iter__(self):
         if self._results is None:
-            results = []
-            for result in self.run_query():
-                results.append(result)
-                yield result
-            self._results = results
+            results = self.run_query()
+            if isinstance(results, list):
+                self._results = results
+                for result in results:
+                    yield result
+            else:
+                results_list = []
+                for result in results:
+                    results_list.append(result)
+                    yield result
+                self._results = results
         else:
             yield from self._results
 
