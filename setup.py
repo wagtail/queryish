@@ -22,6 +22,11 @@ setup(
     install_requires=[
         "requests>=2.28,<3.0",
     ],
+    extras_require={
+        "testing": [
+            "responses>=0.23,<1.0",
+        ]
+    },
     classifiers=[
         'Development Status :: 3 - Alpha',
         'Intended Audience :: Developers',
