@@ -74,5 +74,14 @@ class Queryish:
             if self._results:
                 clone._results = self._results[key]
             return clone
+        elif isinstance(key, int):
+            if key < 0:
+                raise IndexError("Negative indexing is not supported")
+            if self._results is None:
+                self._results = list(self.run_query())
+            return self._results[key]
         else:
-            raise NotImplementedError("%r does not support indexing" % self.__class__.__name__)
+            raise TypeError(
+                "%r indices must be integers or slices, not %s"
+                % (self.__class__.__name__, type(key).__name__)
+            )

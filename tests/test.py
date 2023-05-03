@@ -154,3 +154,22 @@ class TestQueryish(TestCase):
         self.assertEqual(list(qs2), [1, 2, 3, 4, 5, 6, 7, 8])
         self.assertEqual(qs1.run_query_call_count, 1)
         self.assertEqual(qs2.run_query_call_count, 0)
+
+    def test_indexing(self):
+        qs = CounterSource()
+        self.assertEqual(qs[1], 1)
+        self.assertEqual(qs.run_query_call_count, 1)
+        self.assertEqual(qs[2], 2)
+        self.assertEqual(qs.run_query_call_count, 1)
+
+    def test_indexing_after_slice(self):
+        qs = CounterSource()[1:5]
+        self.assertEqual(qs[1], 2)
+        self.assertEqual(qs.run_query_call_count, 1)
+        self.assertEqual(qs[2], 3)
+        self.assertEqual(qs.run_query_call_count, 1)
+
+    def test_invalid_index_type(self):
+        qs = CounterSource()
+        with self.assertRaises(TypeError):
+            qs['a']
