@@ -127,3 +127,9 @@ class Queryish:
                 "%r indices must be integers or slices, not %s"
                 % (self.__class__.__name__, type(key).__name__)
             )
+
+    def __repr__(self):
+        items = list(self[:21])
+        if len(items) > 20:
+            items[-1] = "...(remaining elements truncated)..."
+        return "<%s %r>" % (self.__class__.__name__, items)

@@ -4,16 +4,17 @@ from queryish import Queryish
 
 
 class CounterSourceWithoutCount(Queryish):
-    def __init__(self):
+    def __init__(self, max_count=10):
         super().__init__()
+        self.max_count = max_count
         self.run_query_call_count = 0
 
     def _get_real_limits(self):
-        start = min(self.offset, 10)
+        start = min(self.offset, self.max_count)
         if self.limit is not None:
-            stop = min(self.offset + self.limit, 10)
+            stop = min(self.offset + self.limit, self.max_count)
         else:
-            stop = 10
+            stop = self.max_count
 
         return (start, stop)
 
@@ -30,8 +31,8 @@ class CounterSourceWithoutCount(Queryish):
 
 
 class CounterSource(CounterSourceWithoutCount):
-    def __init__(self):
-        super().__init__()
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
         self.run_count_call_count = 0
 
     def run_count(self):
@@ -173,3 +174,12 @@ class TestQueryish(TestCase):
         qs = CounterSource()
         with self.assertRaises(TypeError):
             qs['a']
+
+    def test_repr(self):
+        qs = CounterSource()
+        self.assertEqual(repr(qs), "<CounterSource [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]>")
+        qs = CounterSource(max_count=30)
+        self.assertEqual(
+            repr(qs),
+            "<CounterSource [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, '...(remaining elements truncated)...']>"
+        )
