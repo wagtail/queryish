@@ -14,6 +14,12 @@ class LimitOffsetPaginatedCountryAPISource(APISource):
     pagination_style = "offset-limit"
 
 
+class PageNumberPaginatedCountryAPISource(APISource):
+    base_url = "http://example.com/api/countries/"
+    pagination_style = "page-number"
+    page_size = 2
+
+
 class TestAPISource(TestCase):
     @responses.activate
     def test_fetch_unpaginated(self):
@@ -163,6 +169,79 @@ class TestAPISource(TestCase):
         self.assertEqual(full_results[2], {"name": "Italy", "continent": "europe"})
 
         partial_results = list(LimitOffsetPaginatedCountryAPISource()[2:4])
+        self.assertEqual(partial_results, [
+            {"name": "Italy", "continent": "europe"},
+            {"name": "Japan", "continent": "asia"},
+        ])
+
+    @responses.activate
+    def test_fetch_page_number_paginated(self):
+        responses.add(
+            responses.GET, "http://example.com/api/countries/",
+            match=[matchers.query_param_matcher({"page": 1})],
+            body="""
+                {
+                    "count": 5,
+                    "next": "http://example.com/api/countries/?page=2",
+                    "previous": null,
+                    "results": [
+                        {
+                            "name": "France",
+                            "continent": "europe"
+                        },
+                        {
+                            "name": "Germany",
+                            "continent": "europe"
+                        }
+                    ]
+                }
+            """
+        )
+        responses.add(
+            responses.GET, "http://example.com/api/countries/",
+            match=[matchers.query_param_matcher({"page": 2})],
+            body="""
+                {
+                    "count": 5,
+                    "next": "http://example.com/api/countries/?page=3",
+                    "previous": "http://example.com/api/countries/",
+                    "results": [
+                        {
+                            "name": "Italy",
+                            "continent": "europe"
+                        },
+                        {
+                            "name": "Japan",
+                            "continent": "asia"
+                        }
+                    ]
+                }
+            """
+        )
+        responses.add(
+            responses.GET, "http://example.com/api/countries/",
+            match=[matchers.query_param_matcher({"page": 3})],
+            body="""
+                {
+                    "count": 5,
+                    "next": null,
+                    "previous": "http://example.com/api/countries/?page=2",
+                    "results": [
+                        {
+                            "name": "China",
+                            "continent": "asia"
+                        }
+                    ]
+                }
+            """
+        )
+
+        self.assertEqual(PageNumberPaginatedCountryAPISource().count(), 5)
+
+        full_results = list(PageNumberPaginatedCountryAPISource())
+        self.assertEqual(full_results[2], {"name": "Italy", "continent": "europe"})
+
+        partial_results = list(PageNumberPaginatedCountryAPISource()[2:4])
         self.assertEqual(partial_results, [
             {"name": "Italy", "continent": "europe"},
             {"name": "Japan", "continent": "asia"},

@@ -36,6 +36,32 @@ class APISource(Queryish):
                 offset += len(results_page)
                 if limit is not None:
                     limit -= len(results_page)
+        elif self.pagination_style == "page-number":
+            offset = self.offset
+            limit = self.limit
+            returned_result_count = 0
+
+            while True:
+                # continue fetching pages of results until we reach either
+                # the end of the result set or the end of the slice
+                page = 1 + offset // self.page_size
+                response_json = self.fetch_api_response(params={
+                    "page": page,
+                })
+                results_page = self.get_results_from_response(response_json)
+                results_page_offset = offset % self.page_size
+                for result in results_page[results_page_offset:]:
+                    yield result
+                    returned_result_count += 1
+                    if self.limit is not None and returned_result_count >= self.limit:
+                        return
+                if len(results_page) == 0 or offset + len(results_page) >= response_json["count"]:
+                    # we've reached the end of the result set
+                    return
+
+                offset += len(results_page)
+                if limit is not None:
+                    limit -= len(results_page)
         else:
             response_json = self.fetch_api_response()
             if self.limit is None:
@@ -46,10 +72,13 @@ class APISource(Queryish):
             yield from results[self.offset:stop]
 
     def run_count(self):
-        if self.pagination_style == "offset-limit":
-            response_json = self.fetch_api_response(params={
-                "limit": 1,
-            })
+        if self.pagination_style == "offset-limit" or self.pagination_style == "page-number":
+            if self.pagination_style == "offset-limit":
+                params = {"limit": 1}
+            else:
+                params = {"page": 1}
+
+            response_json = self.fetch_api_response(params=params)
             count = response_json["count"]
             # count is the full result set without considering slicing;
             # we need to adjust it to the slice
@@ -76,7 +105,7 @@ class APISource(Queryish):
         return self._responses[key]
 
     def get_results_from_response(self, response):
-        if self.pagination_style == "offset-limit":
+        if self.pagination_style == "offset-limit" or self.pagination_style == "page-number":
             return response["results"]
         else:
             return response
