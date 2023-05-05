@@ -12,11 +12,30 @@ class APISource(Queryish):
 
     def run_query(self):
         if self.pagination_style == "offset-limit":
-            response_json = self.fetch_api_response(params={
-                "offset": self.offset,
-                "limit": self.limit,
-            })
-            return self.get_results_from_response(response_json)
+            offset = self.offset
+            limit = self.limit
+            returned_result_count = 0
+
+            while True:
+                # continue fetching pages of results until we reach either
+                # the end of the result set or the end of the slice
+                response_json = self.fetch_api_response(params={
+                    "offset": offset,
+                    "limit": limit,
+                })
+                results_page = self.get_results_from_response(response_json)
+                for result in results_page:
+                    yield result
+                    returned_result_count += 1
+                    if limit is not None and returned_result_count >= limit:
+                        return
+                if len(results_page) == 0 or offset + len(results_page) >= response_json["count"]:
+                    # we've reached the end of the result set
+                    return
+
+                offset += len(results_page)
+                if limit is not None:
+                    limit -= len(results_page)
         else:
             response_json = self.fetch_api_response()
             if self.limit is None:
@@ -24,7 +43,24 @@ class APISource(Queryish):
             else:
                 stop = self.offset + self.limit
             results = self.get_results_from_response(response_json)
-            return results[self.offset:stop]
+            yield from results[self.offset:stop]
+
+    def run_count(self):
+        if self.pagination_style == "offset-limit":
+            response_json = self.fetch_api_response(params={
+                "limit": 1,
+            })
+            count = response_json["count"]
+            # count is the full result set without considering slicing;
+            # we need to adjust it to the slice
+            if self.limit is not None:
+                count = min(count, self.limit)
+            count = max(0, count - self.offset)
+            return count
+
+        else:
+            # default to standard behaviour of getting all results and counting them
+            return super().run_count()
 
     def fetch_api_response(self, params=None):
         # construct a hashable key for the params
