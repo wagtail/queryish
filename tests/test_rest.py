@@ -59,8 +59,9 @@ class TestAPISource(TestCase):
 
         self.assertEqual(UnpaginatedCountryAPISource().count(), 5)
 
-        results = list(UnpaginatedCountryAPISource()[1:3])
-        self.assertEqual(results, [
+        results = UnpaginatedCountryAPISource()[1:3]
+        self.assertFalse(results.ordered)
+        self.assertEqual(list(results), [
             {"name": "Germany", "continent": "europe"},
             {"name": "Italy", "continent": "europe"},
         ])
@@ -355,6 +356,7 @@ class TestAPISource(TestCase):
         )
 
         results = UnpaginatedCountryAPISource().filter(continent="asia").order_by("name")
+        self.assertTrue(results.ordered)
         self.assertEqual(results.count(), 2)
         self.assertEqual(list(results), [
             {"name": "China", "continent": "asia"},

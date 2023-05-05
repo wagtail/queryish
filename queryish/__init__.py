@@ -115,6 +115,10 @@ class Queryish(metaclass=ObjectPropertyMetaclass):
     def all(self):
         return self
 
+    @property
+    def ordered(self):
+        return bool(self.ordering)
+
     def __getitem__(self, key):
         if isinstance(key, slice):
             if key.step is not None:
