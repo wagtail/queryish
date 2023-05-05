@@ -5,6 +5,10 @@ from queryish import Queryish
 
 class APISource(Queryish):
     pagination_style = None
+    limit_query_param = "limit"
+    offset_query_param = "offset"
+    page_query_param = "page"
+    ordering_query_param = "ordering"
 
     def __init__(self):
         super().__init__()
@@ -25,7 +29,7 @@ class APISource(Queryish):
     def run_query(self):
         params = self.get_filters_as_query_dict()
         if self.ordering:
-            params["ordering"] = ",".join(self.ordering)
+            params[self.ordering_query_param] = ",".join(self.ordering)
 
         if self.pagination_style == "offset-limit":
             offset = self.offset
@@ -36,8 +40,8 @@ class APISource(Queryish):
                 # continue fetching pages of results until we reach either
                 # the end of the result set or the end of the slice
                 response_json = self.fetch_api_response(params={
-                    "offset": offset,
-                    "limit": limit,
+                    self.offset_query_param: offset,
+                    self.limit_query_param: limit,
                     **params,
                 })
                 results_page = self.get_results_from_response(response_json)
@@ -63,7 +67,7 @@ class APISource(Queryish):
                 # the end of the result set or the end of the slice
                 page = 1 + offset // self.page_size
                 response_json = self.fetch_api_response(params={
-                    "page": page,
+                    self.page_query_param: page,
                     **params,
                 })
                 results_page = self.get_results_from_response(response_json)
@@ -94,9 +98,9 @@ class APISource(Queryish):
 
         if self.pagination_style == "offset-limit" or self.pagination_style == "page-number":
             if self.pagination_style == "offset-limit":
-                params["limit"] = 1
+                params[self.limit_query_param] = 1
             else:
-                params["page"] = 1
+                params[self.page_query_param] = 1
 
             response_json = self.fetch_api_response(params=params)
             count = response_json["count"]
