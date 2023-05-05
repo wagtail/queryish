@@ -6,6 +6,8 @@ class Queryish:
         self._count = None
         self.offset = 0
         self.limit = None
+        self.filters = []
+        self.filter_fields = None
 
     def run_query(self):
         raise NotImplementedError
@@ -28,7 +30,7 @@ class Queryish:
                 for result in results:
                     results_list.append(result)
                     yield result
-                self._results = results
+                self._results = results_list
         else:
             yield from self._results
 
@@ -50,8 +52,23 @@ class Queryish:
         clone = copy.copy(self)
         clone._results = None
         clone._count = None
+        clone.filters = self.filters.copy()
         for key, value in kwargs.items():
             setattr(clone, key, value)
+        return clone
+
+    def filter_is_valid(self, key, val):
+        if self.filter_fields is not None and key not in self.filter_fields:
+            return False
+        return True
+
+    def filter(self, **kwargs):
+        clone = self.clone()
+        for key, val in kwargs.items():
+            if self.filter_is_valid(key, val):
+                clone.filters.append((key, val))
+            else:
+                raise ValueError("Invalid filter field: %s" % key)
         return clone
 
     def __getitem__(self, key):

@@ -10,7 +10,21 @@ class APISource(Queryish):
         super().__init__()
         self._responses = {}  # cache for API responses
 
+    def get_filters_as_query_dict(self):
+        params = {}
+        for key, val in self.filters:
+            if key in params:
+                if isinstance(params[key], list):
+                    params[key].append(val)
+                else:
+                    params[key] = [params[key], val]
+            else:
+                params[key] = val
+        return params
+
     def run_query(self):
+        params = self.get_filters_as_query_dict()
+
         if self.pagination_style == "offset-limit":
             offset = self.offset
             limit = self.limit
@@ -22,6 +36,7 @@ class APISource(Queryish):
                 response_json = self.fetch_api_response(params={
                     "offset": offset,
                     "limit": limit,
+                    **params,
                 })
                 results_page = self.get_results_from_response(response_json)
                 for result in results_page:
@@ -47,6 +62,7 @@ class APISource(Queryish):
                 page = 1 + offset // self.page_size
                 response_json = self.fetch_api_response(params={
                     "page": page,
+                    **params,
                 })
                 results_page = self.get_results_from_response(response_json)
                 results_page_offset = offset % self.page_size
@@ -63,7 +79,7 @@ class APISource(Queryish):
                 if limit is not None:
                     limit -= len(results_page)
         else:
-            response_json = self.fetch_api_response()
+            response_json = self.fetch_api_response(params=params)
             if self.limit is None:
                 stop = None
             else:
@@ -72,11 +88,13 @@ class APISource(Queryish):
             yield from results[self.offset:stop]
 
     def run_count(self):
+        params = self.get_filters_as_query_dict()
+
         if self.pagination_style == "offset-limit" or self.pagination_style == "page-number":
             if self.pagination_style == "offset-limit":
-                params = {"limit": 1}
+                params["limit"] = 1
             else:
-                params = {"page": 1}
+                params["page"] = 1
 
             response_json = self.fetch_api_response(params=params)
             count = response_json["count"]
