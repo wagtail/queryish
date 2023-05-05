@@ -1,3 +1,4 @@
+from functools import cached_property
 import requests
 
 from queryish import Queryish
@@ -5,6 +6,7 @@ from queryish import Queryish
 
 class APISource(Queryish):
     pagination_style = None
+    pk_field_name = "id"
     limit_query_param = "limit"
     offset_query_param = "offset"
     page_query_param = "page"
@@ -14,9 +16,21 @@ class APISource(Queryish):
         super().__init__()
         self._responses = {}  # cache for API responses
 
+    @cached_property
+    def filter_field_aliases(self):
+        return {"pk": self.pk_field_name}
+
+    def filter_is_valid(self, key, val):
+        if key in self.filter_field_aliases:
+            key = self.filter_field_aliases[key]
+        return super().filter_is_valid(key, val)
+
     def get_filters_as_query_dict(self):
         params = {}
         for key, val in self.filters:
+            # map key to the real API field name, if present in filter_field_aliases
+            key = self.filter_field_aliases.get(key, key)
+
             if key in params:
                 if isinstance(params[key], list):
                     params[key].append(val)

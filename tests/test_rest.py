@@ -361,6 +361,26 @@ class TestAPISource(TestCase):
         self.assertEqual(list(results), [{"id": 4, "name": "Japan", "continent": "asia"}])
 
     @responses.activate
+    def test_filter_by_field_alias(self):
+        responses.add(
+            responses.GET, "http://example.com/api/countries/",
+            match=[matchers.query_param_matcher({"id": 4})],
+            body="""
+                [
+                    {
+                        "id": 4,
+                        "name": "Japan",
+                        "continent": "asia"
+                    }
+                ]
+            """
+        )
+
+        results = UnpaginatedCountryAPISource().filter(pk=4)
+        self.assertEqual(results.count(), 1)
+        self.assertEqual(list(results), [{"id": 4, "name": "Japan", "continent": "asia"}])
+
+    @responses.activate
     def test_ordering(self):
         responses.add(
             responses.GET, "http://example.com/api/countries/",
