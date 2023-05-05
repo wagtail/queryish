@@ -87,6 +87,15 @@ class Queryish:
                 raise ValueError("Invalid ordering field: %s" % key)
         return self.clone(ordering=tuple(ordering))
 
+    def get(self, **kwargs):
+        results = list(self.filter(**kwargs)[:2])
+        if len(results) == 0:
+            raise ValueError("No results found")
+        elif len(results) > 1:
+            raise ValueError("Multiple results found")
+        else:
+            return results[0]
+
     def __getitem__(self, key):
         if isinstance(key, slice):
             if key.step is not None:

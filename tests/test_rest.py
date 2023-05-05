@@ -360,3 +360,57 @@ class TestAPISource(TestCase):
             {"name": "China", "continent": "asia"},
             {"name": "Japan", "continent": "asia"},
         ])
+
+    @responses.activate
+    def test_get(self):
+        responses.add(
+            responses.GET, "http://example.com/api/countries/",
+            match=[matchers.query_param_matcher({"name": "France"})],
+            body="""
+                [
+                    {
+                        "name": "France",
+                        "continent": "europe"
+                    }
+                ]
+            """
+        )
+
+        responses.add(
+            responses.GET, "http://example.com/api/countries/",
+            match=[matchers.query_param_matcher({"name": "Wakanda"})],
+            body="""
+                []
+            """
+        )
+
+        responses.add(
+            responses.GET, "http://example.com/api/countries/",
+            match=[matchers.query_param_matcher({"continent": "europe"})],
+            body="""
+                [
+                    {
+                        "name": "France",
+                        "continent": "europe"
+                    },
+                    {
+                        "name": "Germany",
+                        "continent": "europe"
+                    },
+                    {
+                        "name": "Italy",
+                        "continent": "europe"
+                    }
+                ]
+            """
+        )
+
+        self.assertEqual(
+            UnpaginatedCountryAPISource().get(name="France"),
+            {"name": "France", "continent": "europe"}
+        )
+        with self.assertRaises(ValueError):
+            UnpaginatedCountryAPISource().get(name="Wakanda")
+
+        with self.assertRaises(ValueError):
+            UnpaginatedCountryAPISource().get(continent="europe")
