@@ -1,6 +1,15 @@
 import copy
 
-class Queryish:
+
+class ObjectPropertyMetaclass(type):
+    def __new__(cls, name, bases, attrs):
+        # Make an `objects` attribute available on the class
+        subclass = super().__new__(cls, name, bases, attrs)
+        subclass.objects = subclass()
+        return subclass
+
+
+class Queryish(metaclass=ObjectPropertyMetaclass):
     def __init__(self):
         self._results = None
         self._count = None
