@@ -105,6 +105,13 @@ class Queryish(metaclass=ObjectPropertyMetaclass):
         else:
             return results[0]
 
+    def first(self):
+        results = list(self[:1])
+        try:
+            return results[0]
+        except IndexError:
+            return None
+
     def __getitem__(self, key):
         if isinstance(key, slice):
             if key.step is not None:
