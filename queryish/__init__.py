@@ -112,6 +112,9 @@ class Queryish(metaclass=ObjectPropertyMetaclass):
         except IndexError:
             return None
 
+    def all(self):
+        return self
+
     def __getitem__(self, key):
         if isinstance(key, slice):
             if key.step is not None:

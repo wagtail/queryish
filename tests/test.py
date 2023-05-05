@@ -55,6 +55,11 @@ class TestQueryish(TestCase):
         self.assertEqual(list(qs), list(range(0, 10)))
         self.assertEqual(qs.run_query_call_count, 1)
 
+    def test_all(self):
+        qs = CounterSource()
+        self.assertEqual(list(qs.all()), list(range(0, 10)))
+        self.assertEqual(qs.run_query_call_count, 1)
+
     def test_query_is_only_run_once(self):
         qs = CounterSource()
         list(qs)
