@@ -8,12 +8,14 @@ from queryish.rest import APISource
 class UnpaginatedCountryAPISource(APISource):
     base_url = "http://example.com/api/countries/"
     filter_fields = ["name", "continent"]
+    ordering_fields = ["name", "continent"]
 
 
 class LimitOffsetPaginatedCountryAPISource(APISource):
     base_url = "http://example.com/api/countries/"
     pagination_style = "offset-limit"
     filter_fields = ["name", "continent"]
+    ordering_fields = ["name", "continent"]
 
 
 class PageNumberPaginatedCountryAPISource(APISource):
@@ -21,6 +23,7 @@ class PageNumberPaginatedCountryAPISource(APISource):
     pagination_style = "page-number"
     page_size = 2
     filter_fields = ["name", "continent"]
+    ordering_fields = ["name", "continent"]
 
 
 class TestAPISource(TestCase):
@@ -331,3 +334,29 @@ class TestAPISource(TestCase):
         results = UnpaginatedCountryAPISource().filter(continent="asia").filter(name="Japan")
         self.assertEqual(results.count(), 1)
         self.assertEqual(list(results), [{"name": "Japan", "continent": "asia"}])
+
+    @responses.activate
+    def test_ordering(self):
+        responses.add(
+            responses.GET, "http://example.com/api/countries/",
+            match=[matchers.query_param_matcher({"continent": "asia", "ordering": "name"})],
+            body="""
+                [
+                    {
+                        "name": "China",
+                        "continent": "asia"
+                    },
+                    {
+                        "name": "Japan",
+                        "continent": "asia"
+                    }
+                ]
+            """
+        )
+
+        results = UnpaginatedCountryAPISource().filter(continent="asia").order_by("name")
+        self.assertEqual(results.count(), 2)
+        self.assertEqual(list(results), [
+            {"name": "China", "continent": "asia"},
+            {"name": "Japan", "continent": "asia"},
+        ])

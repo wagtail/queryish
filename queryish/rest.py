@@ -24,6 +24,8 @@ class APISource(Queryish):
 
     def run_query(self):
         params = self.get_filters_as_query_dict()
+        if self.ordering:
+            params["ordering"] = ",".join(self.ordering)
 
         if self.pagination_style == "offset-limit":
             offset = self.offset

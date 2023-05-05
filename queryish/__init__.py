@@ -8,6 +8,8 @@ class Queryish:
         self.limit = None
         self.filters = []
         self.filter_fields = None
+        self.ordering = ()
+        self.ordering_fields = None
 
     def run_query(self):
         raise NotImplementedError
@@ -70,6 +72,20 @@ class Queryish:
             else:
                 raise ValueError("Invalid filter field: %s" % key)
         return clone
+
+    def ordering_is_valid(self, key):
+        if self.ordering_fields is not None and key not in self.ordering_fields:
+            return False
+        return True
+
+    def order_by(self, *args):
+        ordering = []
+        for key in args:
+            if self.ordering_is_valid(key):
+                ordering.append(key)
+            else:
+                raise ValueError("Invalid ordering field: %s" % key)
+        return self.clone(ordering=tuple(ordering))
 
     def __getitem__(self, key):
         if isinstance(key, slice):
