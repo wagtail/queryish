@@ -40,6 +40,9 @@ class APISource(Queryish):
                 params[key] = val
         return params
 
+    def get_instance(self, val):
+        return val
+
     def run_query(self):
         params = self.get_filters_as_query_dict()
         if self.ordering:
@@ -60,7 +63,7 @@ class APISource(Queryish):
                 })
                 results_page = self.get_results_from_response(response_json)
                 for result in results_page:
-                    yield result
+                    yield self.get_instance(result)
                     returned_result_count += 1
                     if limit is not None and returned_result_count >= limit:
                         return
@@ -87,7 +90,7 @@ class APISource(Queryish):
                 results_page = self.get_results_from_response(response_json)
                 results_page_offset = offset % self.page_size
                 for result in results_page[results_page_offset:]:
-                    yield result
+                    yield self.get_instance(result)
                     returned_result_count += 1
                     if self.limit is not None and returned_result_count >= self.limit:
                         return
@@ -105,7 +108,8 @@ class APISource(Queryish):
             else:
                 stop = self.offset + self.limit
             results = self.get_results_from_response(response_json)
-            yield from results[self.offset:stop]
+            for item in results[self.offset:stop]:
+                yield self.get_instance(item)
 
     def run_count(self):
         params = self.get_filters_as_query_dict()
