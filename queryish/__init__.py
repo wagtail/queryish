@@ -124,18 +124,32 @@ class Queryish(metaclass=ObjectPropertyMetaclass):
             if key.step is not None:
                 raise ValueError("%r does not support slicing with a step" % self.__class__.__name__)
 
-            new_offset = self.offset + (key.start or 0)
+            # Adjust the requested start/stop values to be relative to the full queryset
+            absolute_start = (key.start or 0) + self.offset
             if key.stop is None:
-                # no new limit imposed, but need to adjust any existing limit to account for the new offset
-                if self.limit is None:
-                    new_limit = None
-                else:
-                    new_limit = self.limit - (key.start or 0)
+                absolute_stop = None
             else:
-                # new limit imposed
-                new_limit = key.stop - (key.start or 0)
+                absolute_stop = key.stop + self.offset
 
-            clone = self.clone(offset=new_offset, limit=new_limit)
+            # find the absolute stop value corresponding to the current limit
+            if self.limit is None:
+                current_absolute_stop = None
+            else:
+                current_absolute_stop = self.offset + self.limit
+
+            if absolute_stop is None:
+                final_absolute_stop = current_absolute_stop
+            elif current_absolute_stop is None:
+                final_absolute_stop = absolute_stop
+            else:
+                final_absolute_stop = min(current_absolute_stop, absolute_stop)
+
+            if final_absolute_stop is None:
+                new_limit = None
+            else:
+                new_limit = final_absolute_stop - absolute_start
+
+            clone = self.clone(offset=absolute_start, limit=new_limit)
             if self._results:
                 clone._results = self._results[key]
             return clone

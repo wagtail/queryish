@@ -156,6 +156,20 @@ class TestQueryish(TestCase):
         self.assertEqual(qs2.run_query_call_count, 0)
         self.assertEqual(qs3.run_query_call_count, 1)
 
+    def test_multiple_slicing_is_limited_by_first_slice(self):
+        qs1 = CounterSource()
+        qs2 = qs1[1:3]
+        self.assertEqual(qs2.offset, 1)
+        self.assertEqual(qs2.limit, 2)
+        qs3 = qs2[1:10]
+        self.assertEqual(qs3.offset, 2)
+        self.assertEqual(qs3.limit, 1)
+
+        self.assertEqual(list(qs3), [2])
+        self.assertEqual(qs1.run_query_call_count, 0)
+        self.assertEqual(qs2.run_query_call_count, 0)
+        self.assertEqual(qs3.run_query_call_count, 1)
+
     def test_slice_reuses_results(self):
         qs1 = CounterSource()
         list(qs1)
