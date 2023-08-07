@@ -1,15 +1,8 @@
 import copy
+import re
 
 
-class ObjectPropertyMetaclass(type):
-    def __new__(cls, name, bases, attrs):
-        # Make an `objects` attribute available on the class
-        subclass = super().__new__(cls, name, bases, attrs)
-        subclass.objects = subclass()
-        return subclass
-
-
-class Queryish(metaclass=ObjectPropertyMetaclass):
+class Queryish:
     def __init__(self):
         self._results = None
         self._count = None
@@ -170,3 +163,63 @@ class Queryish(metaclass=ObjectPropertyMetaclass):
         if len(items) > 20:
             items[-1] = "...(remaining elements truncated)..."
         return "<%s %r>" % (self.__class__.__name__, items)
+
+
+class VirtualModelOptions:
+    def __init__(self, model_name, fields, verbose_name, verbose_name_plural):
+        self.model_name = model_name
+        self.fields = fields
+        self.verbose_name = verbose_name
+        self.verbose_name_plural = verbose_name_plural
+
+
+class VirtualModelMetaclass(type):
+    def __new__(cls, name, bases, attrs):
+        model = super().__new__(cls, name, bases, attrs)
+        meta = getattr(model, "Meta", None)
+
+        if model.base_query_class:
+            # construct a queryset subclass with a 'model' attribute
+            # and any additional attributes defined on the Meta class
+            dct = {
+                "model": model,
+            }
+            if meta:
+                for attr in dir(meta):
+                    # attr must be defined on base_query_class to be valid
+                    if hasattr(model.base_query_class, attr) and not attr.startswith("_"):
+                        dct[attr] = getattr(meta, attr)
+
+            # create the queryset subclass
+            model.query_class = type("%sQuerySet" % name, (model.base_query_class,), dct)
+
+            # Make an `objects` attribute available on the class
+            model.objects = model._default_manager = model.query_class()
+
+        # construct a VirtualModelOptions instance to use as the _meta attribute
+        verbose_name = getattr(meta, "verbose_name", None)
+        if verbose_name is None:
+            re_camel_case = re.compile(r"(((?<=[a-z])[A-Z])|([A-Z](?![A-Z]|$)))")
+            verbose_name = re_camel_case.sub(r" \1", name).strip().lower()
+
+        model._meta = VirtualModelOptions(
+            model_name=name.lower(),
+            fields=getattr(meta, "fields", []),
+            verbose_name=verbose_name,
+            verbose_name_plural=getattr(meta, "verbose_name_plural", verbose_name + "s"),
+        )
+
+        return model
+
+
+class VirtualModel(metaclass=VirtualModelMetaclass):
+    base_query_class = None
+    pk_field_name = "id"
+
+    def __init__(self, **kwargs):
+        for field in self._meta.fields:
+            setattr(self, field, kwargs.get(field))
+        self.pk = kwargs.get(self.pk_field_name)
+
+    def __repr__(self):
+        return f"<{self.__class__.__name__}: {str(self)}>"

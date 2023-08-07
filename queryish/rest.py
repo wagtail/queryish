@@ -1,16 +1,19 @@
 from functools import cached_property
 import requests
 
-from queryish import Queryish
+from queryish import Queryish, VirtualModel
 
 
 class APISource(Queryish):
+    base_url = None
     pagination_style = None
     pk_field_name = "id"
     limit_query_param = "limit"
     offset_query_param = "offset"
     page_query_param = "page"
     ordering_query_param = "ordering"
+    model = None
+    page_size = None
 
     def __init__(self):
         super().__init__()
@@ -41,7 +44,10 @@ class APISource(Queryish):
         return params
 
     def get_instance(self, val):
-        return val
+        if self.model:
+            return self.model(**val)
+        else:
+            return val
 
     def run_query(self):
         params = self.get_filters_as_query_dict()
@@ -151,3 +157,7 @@ class APISource(Queryish):
             return response["results"]
         else:
             return response
+
+
+class APIModel(VirtualModel):
+    base_query_class = APISource
