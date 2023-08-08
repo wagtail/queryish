@@ -2,7 +2,7 @@ from unittest import TestCase
 import responses
 from responses import matchers
 
-from queryish.rest import APIQuerySet
+from queryish.rest import APIModel, APIQuerySet
 
 
 class CountryAPIQuerySet(APIQuerySet):
@@ -22,6 +22,12 @@ class LimitOffsetPaginatedCountryAPIQuerySet(CountryAPIQuerySet):
 class PageNumberPaginatedCountryAPIQuerySet(CountryAPIQuerySet):
     pagination_style = "page-number"
     page_size = 2
+
+
+class Country(APIModel):
+    class Meta:
+        base_url = "http://example.com/api/countries/"
+        fields = ["id", "name", "continent"]
 
 
 class TestAPIQuerySet(TestCase):
@@ -466,3 +472,37 @@ class TestAPIQuerySet(TestCase):
 
         with self.assertRaises(ValueError):
             UnpaginatedCountryAPIQuerySet().get(continent="europe")
+
+
+class TestAPIModel(TestCase):
+    @responses.activate
+    def test_query(self):
+        responses.add(
+            responses.GET, "http://example.com/api/countries/",
+            match=[matchers.query_param_matcher({"continent": "europe", "ordering": "-name"})],
+            body="""
+                [
+                    {
+                        "id": 3,
+                        "name": "Italy",
+                        "continent": "europe"
+                    },
+                    {
+                        "id": 2,
+                        "name": "Germany",
+                        "continent": "europe"
+                    },
+                    {
+                        "id": 1,
+                        "name": "France",
+                        "continent": "europe"
+                    }
+                ]
+            """
+        )
+
+        results = Country.objects.filter(continent="europe").order_by("-name")
+        self.assertEqual(results.count(), 3)
+        self.assertIsInstance(results[0], Country)
+        country_names = [country.name for country in results]
+        self.assertEqual(country_names, ["Italy", "Germany", "France"])
