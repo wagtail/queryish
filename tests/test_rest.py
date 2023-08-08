@@ -29,6 +29,9 @@ class Country(APIModel):
         base_url = "http://example.com/api/countries/"
         fields = ["id", "name", "continent"]
 
+    def __str__(self):
+        return self.name
+
 
 class TestAPIQuerySet(TestCase):
     @responses.activate
@@ -506,3 +509,5 @@ class TestAPIModel(TestCase):
         self.assertIsInstance(results[0], Country)
         country_names = [country.name for country in results]
         self.assertEqual(country_names, ["Italy", "Germany", "France"])
+        self.assertEqual(repr(results[0]), "<Country: Italy>")
+        self.assertEqual(str(results[0]), "Italy")

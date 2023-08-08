@@ -221,5 +221,8 @@ class VirtualModel(metaclass=VirtualModelMetaclass):
             setattr(self, field, kwargs.get(field))
         self.pk = kwargs.get(self.pk_field_name)
 
+    def __str__(self):
+        return f"{self.__class__.__name__} object ({self.pk})"
+
     def __repr__(self):
         return f"<{self.__class__.__name__}: {str(self)}>"
