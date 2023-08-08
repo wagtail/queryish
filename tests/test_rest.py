@@ -2,29 +2,29 @@ from unittest import TestCase
 import responses
 from responses import matchers
 
-from queryish.rest import APISource
+from queryish.rest import APIQuerySet
 
 
-class CountryAPISource(APISource):
+class CountryAPIQuerySet(APIQuerySet):
     base_url = "http://example.com/api/countries/"
     filter_fields = ["id", "name", "continent"]
     ordering_fields = ["id", "name", "continent"]
 
 
-class UnpaginatedCountryAPISource(CountryAPISource):
+class UnpaginatedCountryAPIQuerySet(CountryAPIQuerySet):
     pass
 
 
-class LimitOffsetPaginatedCountryAPISource(CountryAPISource):
+class LimitOffsetPaginatedCountryAPIQuerySet(CountryAPIQuerySet):
     pagination_style = "offset-limit"
 
 
-class PageNumberPaginatedCountryAPISource(CountryAPISource):
+class PageNumberPaginatedCountryAPIQuerySet(CountryAPIQuerySet):
     pagination_style = "page-number"
     page_size = 2
 
 
-class TestAPISource(TestCase):
+class TestAPIQuerySet(TestCase):
     @responses.activate
     def test_fetch_unpaginated(self):
         responses.add(
@@ -60,9 +60,9 @@ class TestAPISource(TestCase):
             """
         )
 
-        self.assertEqual(UnpaginatedCountryAPISource().count(), 5)
+        self.assertEqual(UnpaginatedCountryAPIQuerySet().count(), 5)
 
-        results = UnpaginatedCountryAPISource()[1:3]
+        results = UnpaginatedCountryAPIQuerySet()[1:3]
         self.assertFalse(results.ordered)
         self.assertEqual(list(results), [
             {"id": 2, "name": "Germany", "continent": "europe"},
@@ -181,12 +181,12 @@ class TestAPISource(TestCase):
             """
         )
 
-        self.assertEqual(LimitOffsetPaginatedCountryAPISource().count(), 5)
+        self.assertEqual(LimitOffsetPaginatedCountryAPIQuerySet().count(), 5)
 
-        full_results = list(LimitOffsetPaginatedCountryAPISource())
+        full_results = list(LimitOffsetPaginatedCountryAPIQuerySet())
         self.assertEqual(full_results[2], {"id": 3, "name": "Italy", "continent": "europe"})
 
-        partial_results = list(LimitOffsetPaginatedCountryAPISource()[2:4])
+        partial_results = list(LimitOffsetPaginatedCountryAPIQuerySet()[2:4])
         self.assertEqual(partial_results, [
             {"id": 3, "name": "Italy", "continent": "europe"},
             {"id": 4, "name": "Japan", "continent": "asia"},
@@ -259,12 +259,12 @@ class TestAPISource(TestCase):
             """
         )
 
-        self.assertEqual(PageNumberPaginatedCountryAPISource().count(), 5)
+        self.assertEqual(PageNumberPaginatedCountryAPIQuerySet().count(), 5)
 
-        full_results = list(PageNumberPaginatedCountryAPISource())
+        full_results = list(PageNumberPaginatedCountryAPIQuerySet())
         self.assertEqual(full_results[2], {"id": 3, "name": "Italy", "continent": "europe"})
 
-        partial_results = list(PageNumberPaginatedCountryAPISource()[2:4])
+        partial_results = list(PageNumberPaginatedCountryAPIQuerySet()[2:4])
         self.assertEqual(partial_results, [
             {"id": 3, "name": "Italy", "continent": "europe"},
             {"id": 4, "name": "Japan", "continent": "asia"},
@@ -324,7 +324,7 @@ class TestAPISource(TestCase):
             """
         )
 
-        all_results = UnpaginatedCountryAPISource()
+        all_results = UnpaginatedCountryAPIQuerySet()
         results = all_results.filter(continent="asia")
         self.assertEqual(results.count(), 2)
         # filter should not affect the original queryset
@@ -351,12 +351,12 @@ class TestAPISource(TestCase):
             """
         )
 
-        results = UnpaginatedCountryAPISource().filter(continent="asia", name="Japan")
+        results = UnpaginatedCountryAPIQuerySet().filter(continent="asia", name="Japan")
         self.assertEqual(results.count(), 1)
         self.assertEqual(list(results), [{"id": 4, "name": "Japan", "continent": "asia"}])
 
         # filters can also be chained
-        results = UnpaginatedCountryAPISource().filter(continent="asia").filter(name="Japan")
+        results = UnpaginatedCountryAPIQuerySet().filter(continent="asia").filter(name="Japan")
         self.assertEqual(results.count(), 1)
         self.assertEqual(list(results), [{"id": 4, "name": "Japan", "continent": "asia"}])
 
@@ -376,7 +376,7 @@ class TestAPISource(TestCase):
             """
         )
 
-        results = UnpaginatedCountryAPISource().filter(pk=4)
+        results = UnpaginatedCountryAPIQuerySet().filter(pk=4)
         self.assertEqual(results.count(), 1)
         self.assertEqual(list(results), [{"id": 4, "name": "Japan", "continent": "asia"}])
 
@@ -401,7 +401,7 @@ class TestAPISource(TestCase):
             """
         )
 
-        results = UnpaginatedCountryAPISource().filter(continent="asia").order_by("name")
+        results = UnpaginatedCountryAPIQuerySet().filter(continent="asia").order_by("name")
         self.assertTrue(results.ordered)
         self.assertEqual(results.count(), 2)
         self.assertEqual(list(results), [
@@ -458,11 +458,11 @@ class TestAPISource(TestCase):
         )
 
         self.assertEqual(
-            UnpaginatedCountryAPISource().get(name="France"),
+            UnpaginatedCountryAPIQuerySet().get(name="France"),
             {"id": 1, "name": "France", "continent": "europe"}
         )
         with self.assertRaises(ValueError):
-            UnpaginatedCountryAPISource().get(name="Wakanda")
+            UnpaginatedCountryAPIQuerySet().get(name="Wakanda")
 
         with self.assertRaises(ValueError):
-            UnpaginatedCountryAPISource().get(continent="europe")
+            UnpaginatedCountryAPIQuerySet().get(continent="europe")

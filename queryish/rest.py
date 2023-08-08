@@ -4,7 +4,7 @@ import requests
 from queryish import Queryish, VirtualModel
 
 
-class APISource(Queryish):
+class APIQuerySet(Queryish):
     base_url = None
     pagination_style = None
     pk_field_name = "id"
@@ -160,4 +160,4 @@ class APISource(Queryish):
 
 
 class APIModel(VirtualModel):
-    base_query_class = APISource
+    base_query_class = APIQuerySet
