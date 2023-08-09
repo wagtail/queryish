@@ -6,6 +6,7 @@ from queryish import Queryish, VirtualModel
 
 class APIQuerySet(Queryish):
     base_url = None
+    detail_url = None
     pagination_style = None
     pk_field_name = "id"
     limit_query_param = "limit"
@@ -49,8 +50,26 @@ class APIQuerySet(Queryish):
         else:
             return val
 
+    def get_individual_instance(self, val):
+        if self.model:
+            return self.model.from_individual_data(val)
+        else:
+            return val
+
+    def get_detail_url(self, pk):
+        return self.detail_url % pk
+
     def run_query(self):
         params = self.get_filters_as_query_dict()
+
+        if list(params.keys()) == [self.pk_field_name] and self.detail_url:
+            # if the only filter is the pk, we can use the detail view
+            # to fetch the single instance
+            yield self.get_individual_instance(self.fetch_api_response(
+                url=self.get_detail_url(params[self.pk_field_name]),
+            ))
+            return
+
         if self.ordering:
             params[self.ordering_query_param] = ",".join(self.ordering)
 
@@ -139,14 +158,17 @@ class APIQuerySet(Queryish):
             # default to standard behaviour of getting all results and counting them
             return super().run_count()
 
-    def fetch_api_response(self, params=None):
+    def fetch_api_response(self, url=None, params=None):
         # construct a hashable key for the params
+        if url is None:
+            url = self.base_url
+
         if params is None:
             params = {}
-        key = tuple(sorted(params.items()))
+        key = tuple([url] + sorted(params.items()))
         if key not in self._responses:
             self._responses[key] = requests.get(
-                self.base_url,
+                url,
                 params=params,
                 headers={"Accept": "application/json"},
             ).json()

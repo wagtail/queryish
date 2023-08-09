@@ -37,6 +37,7 @@ class Country(APIModel):
 class Pokemon(APIModel):
     class Meta:
         base_url = "https://pokeapi.co/api/v2/pokemon/"
+        detail_url = "https://pokeapi.co/api/v2/pokemon/%d/"
         fields = ["id", "name"]
         pagination_style = "offset-limit"
 
@@ -542,3 +543,15 @@ class TestAPIModel(TestCase):
         result = Pokemon.objects.first()
         self.assertEqual(result.name, "bulbasaur")
         self.assertEqual(result.id, 1)
+
+    @responses.activate
+    def test_instance_from_detail_lookup(self):
+        responses.add(
+            responses.GET, "https://pokeapi.co/api/v2/pokemon/3/",
+            body="""
+                {"name":"venusaur", "url":"https://pokeapi.co/api/v2/pokemon/3/"}
+            """
+        )
+        result = Pokemon.objects.get(id=3)
+        self.assertEqual(result.name, "venusaur")
+        self.assertEqual(result.id, 3)

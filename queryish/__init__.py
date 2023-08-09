@@ -220,6 +220,10 @@ class VirtualModel(metaclass=VirtualModelMetaclass):
     def from_query_data(cls, data):
         return cls(**data)
 
+    @classmethod
+    def from_individual_data(cls, data):
+        return cls.from_query_data(data)
+
     def __init__(self, **kwargs):
         for field in self._meta.fields:
             setattr(self, field, kwargs.get(field))
