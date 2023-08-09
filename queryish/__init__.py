@@ -216,6 +216,10 @@ class VirtualModel(metaclass=VirtualModelMetaclass):
     base_query_class = None
     pk_field_name = "id"
 
+    @classmethod
+    def from_query_data(cls, data):
+        return cls(**data)
+
     def __init__(self, **kwargs):
         for field in self._meta.fields:
             setattr(self, field, kwargs.get(field))

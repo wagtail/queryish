@@ -45,7 +45,7 @@ class APIQuerySet(Queryish):
 
     def get_instance(self, val):
         if self.model:
-            return self.model(**val)
+            return self.model.from_query_data(val)
         else:
             return val
 

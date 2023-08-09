@@ -1,3 +1,4 @@
+import re
 from unittest import TestCase
 import responses
 from responses import matchers
@@ -28,6 +29,23 @@ class Country(APIModel):
     class Meta:
         base_url = "http://example.com/api/countries/"
         fields = ["id", "name", "continent"]
+
+    def __str__(self):
+        return self.name
+
+
+class Pokemon(APIModel):
+    class Meta:
+        base_url = "https://pokeapi.co/api/v2/pokemon/"
+        fields = ["id", "name"]
+        pagination_style = "offset-limit"
+
+    @classmethod
+    def from_query_data(cls, data):
+        return cls(
+            id=int(re.match(r'https://pokeapi.co/api/v2/pokemon/(\d+)/', data['url']).group(1)),
+            name=data['name'],
+        )
 
     def __str__(self):
         return self.name
@@ -511,3 +529,16 @@ class TestAPIModel(TestCase):
         self.assertEqual(country_names, ["Italy", "Germany", "France"])
         self.assertEqual(repr(results[0]), "<Country: Italy>")
         self.assertEqual(str(results[0]), "Italy")
+
+    @responses.activate
+    def test_instance_from_query_data(self):
+        responses.add(
+            responses.GET, "https://pokeapi.co/api/v2/pokemon/",
+            match=[matchers.query_param_matcher({"offset": "0", "limit": "1"})],
+            body="""
+                {"count":1281,"next":"https://pokeapi.co/api/v2/pokemon/?offset=1&limit=1","previous":null,"results":[{"name":"bulbasaur","url":"https://pokeapi.co/api/v2/pokemon/1/"}]}
+            """
+        )
+        result = Pokemon.objects.first()
+        self.assertEqual(result.name, "bulbasaur")
+        self.assertEqual(result.id, 1)
