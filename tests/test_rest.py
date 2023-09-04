@@ -48,6 +48,13 @@ class Pokemon(APIModel):
             name=data['name'],
         )
 
+    @classmethod
+    def from_individual_data(cls, data):
+        return cls(
+            id=data['id'],
+            name=data['name'],
+        )
+
     def __str__(self):
         return self.name
 
@@ -549,9 +556,31 @@ class TestAPIModel(TestCase):
         responses.add(
             responses.GET, "https://pokeapi.co/api/v2/pokemon/3/",
             body="""
-                {"name":"venusaur", "url":"https://pokeapi.co/api/v2/pokemon/3/"}
+                {"name":"venusaur", "id":3}
             """
         )
         result = Pokemon.objects.get(id=3)
         self.assertEqual(result.name, "venusaur")
         self.assertEqual(result.id, 3)
+
+
+    @responses.activate
+    def test_in_bulk(self):
+        responses.add(
+            responses.GET, "https://pokeapi.co/api/v2/pokemon/3/",
+            body="""
+                {"name":"venusaur", "id":3}
+            """
+        )
+        responses.add(
+            responses.GET, "https://pokeapi.co/api/v2/pokemon/6/",
+            body="""
+                {"name":"charizard", "id":6}
+            """
+        )
+        result = Pokemon.objects.in_bulk([3, 6])
+        self.assertEqual(len(result), 2)
+        self.assertEqual(result[3].name, "venusaur")
+        self.assertEqual(result[3].id, 3)
+        self.assertEqual(result[6].name, "charizard")
+        self.assertEqual(result[6].id, 6)

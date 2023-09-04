@@ -180,6 +180,12 @@ class APIQuerySet(Queryish):
         else:
             return response
 
+    def in_bulk(self, id_list=None, field_name="pk"):
+        return {
+            id: self.get(**{field_name: id})
+            for id in (id_list or [])
+        }
+
 
 class APIModel(VirtualModel):
     base_query_class = APIQuerySet
