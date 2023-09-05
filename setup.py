@@ -8,7 +8,7 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 setup(
     name='queryish',
-    version='0.1',
+    version='0.2',
     description="A library for constructing queries on arbitrary data sources following Django's QuerySet API",
     author='Matthew Westcott',
     author_email='matthew.westcott@torchbox.com',
