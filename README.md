@@ -106,3 +106,72 @@ class Pokemon(APIModel):
     def __str__(self):
         return self.name
 ```
+
+## Customising the REST API queryset class
+
+The `objects` attribute of an `APIModel` subclass is an instance of `queryish.rest.APIQuerySet` which initially consists of the complete set of records. As with Django's QuerySet, methods such as `filter` return a new instance.
+
+It may be necessary to subclass `APIQuerySet` and override methods in order to support certain API responses. For example, the base implementation expects unpaginated API endpoints to return a list as the top-level JSON object, and paginated API endpoints to return a dict with a `results` item. If the API you are working with returns a different structure, you can override the `get_results_from_response` method to extract the list of results from the response:
+
+```python
+from queryish.rest import APIQuerySet
+
+class TreeQuerySet(APIQuerySet):
+    base_url = "https://api.data.amsterdam.nl/v1/bomen/stamgegevens/"
+    pagination_style = "page-number"
+    page_size = 20
+    http_headers = {"Accept": "application/hal+json"}
+
+    def get_results_from_response(self, response):
+        return response["_embedded"]["stamgegevens"]
+```
+
+`APIQuerySet` subclasses can be instantiated independently of an `APIModel`, but results will be returned as plain JSON values:
+
+```python
+>>> TreeQuerySet().filter(jaarVanAanleg=1986).first()
+{'_links': {'schema': 'https://schemas.data.amsterdam.nl/datasets/bomen/dataset#stamgegevens', 'self': {'href': 'https://api.data.amsterdam.nl/v1/bomen/stamgegevens/1101570/', 'title': '1101570', 'id': 1101570}, 'gbdBuurt': {'href': 'https://api.data.amsterdam.nl/v1/gebieden/buurten/03630980000211/', 'title': '03630980000211', 'identificatie': '03630980000211'}}, 'id': 1101570, 'gbdBuurtId': '03630980000211', 'geometrie': {'type': 'Point', 'coordinates': [115162.72, 485972.68]}, 'boomhoogteklasseActueel': 'c. 9 tot 12 m.', 'jaarVanAanleg': 1986, 'soortnaam': "Salix alba 'Chermesina'", 'stamdiameterklasse': '0,5 tot 1 m.', 'typeObject': 'Gekandelaberde boom', 'typeSoortnaam': 'Bomen', 'soortnaamKort': 'Salix', 'soortnaamTop': 'Wilg (Salix)'}
+```
+
+This can be overridden by defining a `model` attribute on the queryset, or overriding the `get_instance` / `get_individual_instance` methods. To use a customised queryset with an `APIModel`, define the `base_query_class` attribute on the model class:
+
+```python
+class Tree(APIModel):
+    base_query_class = TreeQuerySet
+    class Meta:
+        fields = ["id", "geometrie", "boomhoogteklasseActueel", "jaarVanAanleg", "soortnaam", "soortnaamKort"]
+
+# >>> Tree.objects.filter(jaarVanAanleg=1986).first()
+# <Tree: Tree object (1101570)>
+```
+
+## Other data sources
+
+_queryish_ is not limited to REST APIs - the base class `queryish.Queryish` can be used to build a QuerySet-like API around any data source. At minimum, this requires defining a `run_query` method that returns an iterable of records that is filtered, ordered and sliced according to the queryset's attributes. For example, a queryset implementation that works from a simple in-memory list of objects might look like this:
+
+```python
+from queryish import Queryish
+
+class CountryQuerySet(Queryish):
+    def run_query(self):
+        countries = [
+            {"code": "nl", "name": "Netherlands"},
+            {"code": "de", "name": "Germany"},
+            {"code": "fr", "name": "France"},
+            {"code": "gb", "name": "United Kingdom"},
+            {"code": "us", "name": "United States"},
+        ]
+
+        # Filter the list of countries by `self.filters` - a list of (key, value) tuples
+        for (key, val) in self.filters:
+            countries = [c for c in countries if c[key] == val]
+
+        # Sort the list of countries by `self.ordering` - a tuple of field names
+        countries.sort(key=lambda c: [c.get(field, None) for field in self.ordering])
+
+        # Slice the list of countries by `self.offset` and `self.limit`. `offset` is always numeric
+        # and defaults to 0 for an unsliced list; `limit` is either numeric or None (denoting no limit).
+        return countries[self.offset : self.offset + self.limit if self.limit else None]
+```
+
+Subclasses will also typically override the method `run_count`, which returns the number of records in the queryset accounting for any filtering and slicing. If this is not overridden, the default implementation will call `run_query` and count the results.
