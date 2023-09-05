@@ -15,6 +15,7 @@ class APIQuerySet(Queryish):
     ordering_query_param = "ordering"
     model = None
     page_size = None
+    http_headers = {"Accept": "application/json"}
 
     def __init__(self):
         super().__init__()
@@ -170,7 +171,7 @@ class APIQuerySet(Queryish):
             self._responses[key] = requests.get(
                 url,
                 params=params,
-                headers={"Accept": "application/json"},
+                headers=self.http_headers,
             ).json()
         return self._responses[key]
 
