@@ -171,7 +171,51 @@ class VirtualModelOptions:
         self.fields = fields
         self.verbose_name = verbose_name
         self.verbose_name_plural = verbose_name_plural
+        self.app_label = 'QueryishVirtualApp'
+        self.db_table = 'QueryishVirtualTable'
+        self.hidden_fields = []
+        self.private_fields = []
+        self.concrete_fields =  self.fields
+        self.many_to_many = []
+        
 
+    
+    def get_fields(self, include_parents=True, include_hidden=False):
+        """
+        Return a list of fields associated to the model. By default, include
+        forward and reverse fields, fields derived from inheritance, but not
+        hidden fields. The returned fields can be changed using the parameters:
+
+        - include_parents: include fields derived from inheritance
+        - include_hidden:  include fields that have a related_name that
+                           starts with a "+"
+        """
+        
+        fields = []
+        
+        for field in self.fields:
+            fields.append(self.get_field(field))
+        return tuple(fields)
+        
+    def get_field(self,field_name):
+        try:
+            from django.db import models
+            from django.core.exceptions import FieldDoesNotExist
+            
+            if field_name in self.fields:
+                field = models.CharField()
+                field.name = field_name
+                field.attname = field_name
+                field.verbose_name = field_name
+                field.concrete = True
+                return field
+            raise FieldDoesNotExist('No "' + field_name+'" found')
+        except ImportError:
+            raise ImportError("django must be installed to use get_field")
+
+    
+    def get_parent_list(self):
+        return []
 
 class VirtualModelMetaclass(type):
     def __new__(cls, name, bases, attrs):
