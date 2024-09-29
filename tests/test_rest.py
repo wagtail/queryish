@@ -2,7 +2,7 @@ import re
 from unittest import TestCase
 import responses
 from responses import matchers
-
+import django
 from queryish.rest import APIModel, APIQuerySet
 
 
@@ -584,3 +584,14 @@ class TestAPIModel(TestCase):
         self.assertEqual(result[3].id, 3)
         self.assertEqual(result[6].name, "charizard")
         self.assertEqual(result[6].id, 6)
+
+
+    def test_get_field(self):
+        self.assertEqual(type(Country._meta.get_field("name")),django.db.models.CharField)
+        self.assertRaises(django.core.exceptions.FieldDoesNotExist,Country._meta.get_field,"nonexistent_field")
+        
+    def test_get_fields(self):
+        self.assertEqual(len(Country._meta.get_fields()),3)
+        self.assertEqual(type(Country._meta.get_fields()[0]),django.db.models.CharField)
+        self.assertEqual(type(Country._meta.get_fields()[1]),django.db.models.CharField)
+        self.assertEqual(type(Country._meta.get_fields()[2]),django.db.models.CharField)

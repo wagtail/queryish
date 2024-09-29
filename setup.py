@@ -25,6 +25,7 @@ setup(
     extras_require={
         "testing": [
             "responses>=0.23,<1.0",
+            "django>=4.2,<5.1"
         ]
     },
     classifiers=[
