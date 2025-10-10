@@ -5,6 +5,7 @@ x.x (Unreleased)
 ----------------
 
 * Add `get_field` and `get_fields` methods to VirtualModel meta class (smark-1)
+* Add dedicated `DoesNotExist` and `MultipleObjectsReturned` exceptions on VirtualModel
 
 
 0.2 (2023-09-05)

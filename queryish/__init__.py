@@ -2,7 +2,18 @@ import copy
 import re
 
 
+class ObjectDoesNotExist(ValueError):
+    pass
+
+
+class MultipleObjectsReturned(ValueError):
+    pass
+
+
 class Queryish:
+    does_not_exist_exception = ObjectDoesNotExist
+    multiple_objects_returned_exception = MultipleObjectsReturned
+
     def __init__(self):
         self._results = None
         self._count = None
@@ -92,9 +103,9 @@ class Queryish:
     def get(self, **kwargs):
         results = list(self.filter(**kwargs)[:2])
         if len(results) == 0:
-            raise ValueError("No results found")
+            raise self.does_not_exist_exception("No results found")
         elif len(results) > 1:
-            raise ValueError("Multiple results found")
+            raise self.multiple_objects_returned_exception("Multiple results found")
         else:
             return results[0]
 
@@ -219,6 +230,10 @@ class VirtualModelOptions:
 
 class VirtualModelMetaclass(type):
     def __new__(cls, name, bases, attrs):
+        # Create custom exception classes for DoesNotExist and MultipleObjectsReturned
+        attrs["DoesNotExist"] = type("DoesNotExist", (ObjectDoesNotExist,), {})
+        attrs["MultipleObjectsReturned"] = type("MultipleObjectsReturned", (MultipleObjectsReturned,), {})
+
         model = super().__new__(cls, name, bases, attrs)
         meta = getattr(model, "Meta", None)
 
@@ -227,6 +242,8 @@ class VirtualModelMetaclass(type):
             # and any additional attributes defined on the Meta class
             dct = {
                 "model": model,
+                "does_not_exist_exception": model.DoesNotExist,
+                "multiple_objects_returned_exception": model.MultipleObjectsReturned,
             }
             if meta:
                 for attr in dir(meta):
@@ -259,6 +276,8 @@ class VirtualModelMetaclass(type):
 class VirtualModel(metaclass=VirtualModelMetaclass):
     base_query_class = None
     pk_field_name = "id"
+    DoesNotExist = ObjectDoesNotExist
+    MultipleObjectsReturned = MultipleObjectsReturned
 
     @classmethod
     def from_query_data(cls, data):

@@ -3,6 +3,7 @@ from unittest import TestCase
 import responses
 from responses import matchers
 import django
+from queryish import ObjectDoesNotExist, MultipleObjectsReturned
 from queryish.rest import APIModel, APIQuerySet
 
 
@@ -496,10 +497,10 @@ class TestAPIQuerySet(TestCase):
             UnpaginatedCountryAPIQuerySet().get(name="France"),
             {"id": 1, "name": "France", "continent": "europe"}
         )
-        with self.assertRaises(ValueError):
+        with self.assertRaises(ObjectDoesNotExist):
             UnpaginatedCountryAPIQuerySet().get(name="Wakanda")
 
-        with self.assertRaises(ValueError):
+        with self.assertRaises(MultipleObjectsReturned):
             UnpaginatedCountryAPIQuerySet().get(continent="europe")
 
 
@@ -537,6 +538,46 @@ class TestAPIModel(TestCase):
         self.assertEqual(country_names, ["Italy", "Germany", "France"])
         self.assertEqual(repr(results[0]), "<Country: Italy>")
         self.assertEqual(str(results[0]), "Italy")
+
+    @responses.activate
+    def test_get_uses_model_specific_does_not_exist_exception(self):
+        responses.add(
+            responses.GET, "http://example.com/api/countries/",
+            match=[matchers.query_param_matcher({"name": "Wakanda"})],
+            body="""
+                []
+            """
+        )
+        with self.assertRaises(Country.DoesNotExist):
+            Country.objects.get(name="Wakanda")
+
+    @responses.activate
+    def test_get_uses_model_specific_multiple_objects_returned_exception(self):
+        responses.add(
+            responses.GET, "http://example.com/api/countries/",
+            match=[matchers.query_param_matcher({"continent": "europe"})],
+            body="""
+                [
+                    {
+                        "id": 1,
+                        "name": "France",
+                        "continent": "europe"
+                    },
+                    {
+                        "id": 2,
+                        "name": "Germany",
+                        "continent": "europe"
+                    },
+                    {
+                        "id": 3,
+                        "name": "Italy",
+                        "continent": "europe"
+                    }
+                ]
+            """
+        )
+        with self.assertRaises(Country.MultipleObjectsReturned):
+            Country.objects.get(continent="europe")
 
     @responses.activate
     def test_instance_from_query_data(self):
