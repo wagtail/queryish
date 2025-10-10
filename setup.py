@@ -15,7 +15,7 @@ setup(
     url='https://github.com/wagtail/queryish',
     packages=["queryish"],
     include_package_data=True,
-    license='BSD',
+    license='BSD-3-Clause',
     long_description=long_description,
     long_description_content_type="text/markdown",
     python_requires=">=3.7",
@@ -30,7 +30,6 @@ setup(
     classifiers=[
         'Development Status :: 3 - Alpha',
         'Intended Audience :: Developers',
-        'License :: OSI Approved :: BSD License',
         'Operating System :: OS Independent',
         'Programming Language :: Python',
         'Programming Language :: Python :: 3',
