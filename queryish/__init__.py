@@ -45,7 +45,10 @@ class Queryish:
 
     def __iter__(self):
         if self._results is None:
-            results = self.run_query()
+            if self.start == self.stop:
+                results = []
+            else:
+                results = self.run_query()
             if isinstance(results, list):
                 self._results = results
                 for result in results:
@@ -63,6 +66,8 @@ class Queryish:
         if self._count is None:
             if self._results is not None:
                 self._count = len(self._results)
+            elif self.start == self.stop:
+                self._count = 0
             else:
                 self._count = self.run_count()
         return self._count
@@ -70,7 +75,10 @@ class Queryish:
     def __len__(self):
         # __len__ must run the full query
         if self._results is None:
-            self._results = list(self.run_query())
+            if self.start == self.stop:
+                self._results = []
+            else:
+                self._results = list(self.run_query())
         return len(self._results)
 
     def clone(self, **kwargs):

@@ -85,11 +85,23 @@ class TestQueryish(TestCase):
         self.assertEqual(run_count_calls, [])
         self.assertEqual(run_query_calls, [(0, None)])
 
+    def test_count_on_empty_slice(self):
+        qs = CounterQuerySet()[3:3]
+        self.assertEqual(qs.count(), 0)
+        self.assertEqual(run_count_calls, [])
+        self.assertEqual(run_query_calls, [])
+
     def test_len_does_not_use_count(self):
         qs = CounterQuerySet()
         self.assertEqual(len(qs), 10)
         self.assertEqual(run_count_calls, [])
         self.assertEqual(run_query_calls, [(0, None)])
+
+    def test_len_on_empty_slice(self):
+        qs = CounterQuerySet()[3:3]
+        self.assertEqual(len(qs), 0)
+        self.assertEqual(run_count_calls, [])
+        self.assertEqual(run_query_calls, [])
 
     def test_slicing(self):
         qs = CounterQuerySet()[1:3]
@@ -117,7 +129,15 @@ class TestQueryish(TestCase):
         self.assertEqual(qs.offset, 3)
         self.assertEqual(qs.limit, 0)
         self.assertEqual(list(qs), [])
-        self.assertEqual(run_query_calls, [(3, 3)])
+        self.assertEqual(run_query_calls, [])
+
+    def test_iter_on_empty_slice(self):
+        qs = CounterQuerySet()[3:3]
+        results = []
+        for item in qs:
+            results.append(item)
+        self.assertEqual(results, [])
+        self.assertEqual(run_query_calls, [])
 
     def test_multiple_slicing(self):
         qs1 = CounterQuerySet()
@@ -181,7 +201,7 @@ class TestQueryish(TestCase):
         self.assertEqual(qs3.start, 4)
         self.assertEqual(qs3.stop, 4)
         self.assertEqual(list(qs3), [])
-        self.assertEqual(run_query_calls, [(4, 4)])
+        self.assertEqual(run_query_calls, [])
 
     def test_indexing(self):
         qs = CounterQuerySet()
@@ -223,7 +243,7 @@ class TestQueryish(TestCase):
         qs = CounterQuerySet()[3:8]
         with self.assertRaises(IndexError):
             qs[6]
-        self.assertEqual(run_query_calls, [(8, 8)])
+        self.assertEqual(run_query_calls, [])
 
     def test_invalid_index_type(self):
         qs = CounterQuerySet()
