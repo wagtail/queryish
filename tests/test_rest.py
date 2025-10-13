@@ -604,6 +604,34 @@ class TestAPIModel(TestCase):
         self.assertEqual(result.name, "venusaur")
         self.assertEqual(result.id, 3)
 
+    @responses.activate
+    def test_equality(self):
+        responses.add(
+            responses.GET, "http://example.com/api/countries/",
+            match=[matchers.query_param_matcher({"id": 4})],
+            body="""
+                [
+                    {
+                        "id": 4,
+                        "name": "Japan",
+                        "continent": "asia"
+                    }
+                ]
+            """
+        )
+
+        country = Country.objects.get(id=4)
+        # match by ID and type
+        self.assertEqual(country, Country(id=4, name="Japan", continent="asia"))
+        self.assertEqual(country, Country(id=4, name="Nihon", continent="asia"))
+        self.assertNotEqual(country, Country(id=5, name="China", continent="asia"))
+        self.assertNotEqual(country, Pokemon(id=4, name="Charmander"))
+
+    def test_equality_on_unsaved_objects(self):
+        obj1 = Country(name="New Country", continent="oceania")
+        obj2 = Country(name="New Country", continent="oceania")
+        self.assertEqual(obj1, obj1)
+        self.assertNotEqual(obj1, obj2)
 
     @responses.activate
     def test_in_bulk(self):
