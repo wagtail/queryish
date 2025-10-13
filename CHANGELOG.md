@@ -1,7 +1,7 @@
 Changelog
 =========
 
-x.x (Unreleased)
+0.3 (2025-10-13)
 ----------------
 
 * Add `get_field` and `get_fields` methods to VirtualModel meta class (smark-1)

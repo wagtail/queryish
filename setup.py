@@ -8,7 +8,7 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 setup(
     name='queryish',
-    version='0.2',
+    version='0.3',
     description="A library for constructing queries on arbitrary data sources following Django's QuerySet API",
     author='Matthew Westcott',
     author_email='matthew.westcott@torchbox.com',
@@ -25,7 +25,7 @@ setup(
     extras_require={
         "testing": [
             "responses>=0.23,<1.0",
-            "django>=4.2,<5.1"
+            "django>=4.2",
         ]
     },
     classifiers=[
