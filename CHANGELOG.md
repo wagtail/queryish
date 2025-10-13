@@ -6,6 +6,9 @@ x.x (Unreleased)
 
 * Add `get_field` and `get_fields` methods to VirtualModel meta class (smark-1)
 * Add dedicated `DoesNotExist` and `MultipleObjectsReturned` exceptions on VirtualModel
+* Make properties `start` and `stop` available in addition to `offset` and `limit`
+* Short-circuit queries if running on an empty slice
+* Fix: When retrieving by index, use a single-item slice instead of running the full query
 
 
 0.2 (2023-09-05)
