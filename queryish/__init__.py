@@ -306,3 +306,10 @@ class VirtualModel(metaclass=VirtualModelMetaclass):
 
     def __repr__(self):
         return f"<{self.__class__.__name__}: {str(self)}>"
+
+    def __eq__(self, other):
+        if type(self) is not type(other):
+            return False
+        if self.pk is None:
+            return other is self
+        return self.pk == other.pk
