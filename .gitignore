@@ -1,4 +1,5 @@
 /queryish.egg-info
 /dist
 /build
+/.coverage
 __pycache__
