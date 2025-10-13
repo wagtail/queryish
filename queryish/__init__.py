@@ -17,12 +17,22 @@ class Queryish:
     def __init__(self):
         self._results = None
         self._count = None
-        self.offset = 0
-        self.limit = None
+        self.start = 0
+        self.stop = None
         self.filters = []
         self.filter_fields = None
         self.ordering = ()
         self.ordering_fields = None
+
+    @property
+    def offset(self):
+        return self.start
+
+    @property
+    def limit(self):
+        if self.stop is None:
+            return None
+        return self.stop - self.start
 
     def run_query(self):
         raise NotImplementedError
@@ -123,37 +133,28 @@ class Queryish:
     def ordered(self):
         return bool(self.ordering)
 
+    def set_limits(self, start, stop):
+        if (start is not None and start < 0) or (stop is not None and stop < 0):
+            raise ValueError("Negative indexing is not supported")
+
+        if stop is not None:
+            if self.stop is not None:
+                self.stop = min(self.stop, self.start + stop)
+            else:
+                self.stop = self.start + stop
+        if start is not None:
+            if self.stop is not None:
+                self.start = min(self.stop, self.start + start)
+            else:
+                self.start = self.start + start
+
     def __getitem__(self, key):
         if isinstance(key, slice):
             if key.step is not None:
                 raise ValueError("%r does not support slicing with a step" % self.__class__.__name__)
 
-            # Adjust the requested start/stop values to be relative to the full queryset
-            absolute_start = (key.start or 0) + self.offset
-            if key.stop is None:
-                absolute_stop = None
-            else:
-                absolute_stop = key.stop + self.offset
-
-            # find the absolute stop value corresponding to the current limit
-            if self.limit is None:
-                current_absolute_stop = None
-            else:
-                current_absolute_stop = self.offset + self.limit
-
-            if absolute_stop is None:
-                final_absolute_stop = current_absolute_stop
-            elif current_absolute_stop is None:
-                final_absolute_stop = absolute_stop
-            else:
-                final_absolute_stop = min(current_absolute_stop, absolute_stop)
-
-            if final_absolute_stop is None:
-                new_limit = None
-            else:
-                new_limit = final_absolute_stop - absolute_start
-
-            clone = self.clone(offset=absolute_start, limit=new_limit)
+            clone = self.clone()
+            clone.set_limits(key.start, key.stop)
             if self._results:
                 clone._results = self._results[key]
             return clone

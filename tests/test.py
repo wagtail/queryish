@@ -111,6 +111,13 @@ class TestQueryish(TestCase):
         self.assertEqual(list(qs), [3, 4, 5, 6, 7, 8, 9])
         self.assertEqual(qs.run_query_call_count, 1)
 
+    def test_empty_slice(self):
+        qs = CounterQuerySet()[3:3]
+        self.assertEqual(qs.offset, 3)
+        self.assertEqual(qs.limit, 0)
+        self.assertEqual(list(qs), [])
+        self.assertEqual(qs.run_query_call_count, 1)
+
     def test_multiple_slicing(self):
         qs1 = CounterQuerySet()
         qs2 = qs1[1:9]
@@ -174,6 +181,15 @@ class TestQueryish(TestCase):
         self.assertEqual(list(qs2), [1, 2, 3, 4, 5, 6, 7, 8])
         self.assertEqual(qs1.run_query_call_count, 1)
         self.assertEqual(qs2.run_query_call_count, 0)
+
+    def test_disjoint_slices(self):
+        qs1 = CounterQuerySet()
+        qs2 = qs1[2:4]
+        qs3 = qs2[3:5]
+        self.assertEqual(qs3.start, 4)
+        self.assertEqual(qs3.stop, 4)
+        self.assertEqual(list(qs3), [])
+        self.assertEqual(qs3.run_query_call_count, 1)
 
     def test_indexing(self):
         qs = CounterQuerySet()
