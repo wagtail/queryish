@@ -186,6 +186,14 @@ class TestQueryish(TestCase):
     def test_indexing(self):
         qs = CounterQuerySet()
         self.assertEqual(qs[1], 1)
+        self.assertEqual(run_query_calls, [(1, 2)])
+        self.assertEqual(qs[2], 2)
+        self.assertEqual(run_query_calls, [(1, 2), (2, 3)])
+
+    def test_indexing_after_fetch(self):
+        qs = CounterQuerySet()
+        list(qs)
+        self.assertEqual(qs[1], 1)
         self.assertEqual(run_query_calls, [(0, None)])
         self.assertEqual(qs[2], 2)
         self.assertEqual(run_query_calls, [(0, None)])
@@ -193,9 +201,29 @@ class TestQueryish(TestCase):
     def test_indexing_after_slice(self):
         qs = CounterQuerySet()[1:5]
         self.assertEqual(qs[1], 2)
+        self.assertEqual(run_query_calls, [(2, 3)])
+        self.assertEqual(qs[2], 3)
+        self.assertEqual(run_query_calls, [(2, 3), (3, 4)])
+
+    def test_indexing_after_slice_and_fetch(self):
+        qs = CounterQuerySet()[1:5]
+        list(qs)
+        self.assertEqual(qs[1], 2)
         self.assertEqual(run_query_calls, [(1, 5)])
         self.assertEqual(qs[2], 3)
         self.assertEqual(run_query_calls, [(1, 5)])
+
+    def test_indexing_out_of_range(self):
+        qs = CounterQuerySet()
+        with self.assertRaises(IndexError):
+            qs[20]
+        self.assertEqual(run_query_calls, [(20, 21)])
+
+    def test_indexing_out_of_range_after_slice(self):
+        qs = CounterQuerySet()[3:8]
+        with self.assertRaises(IndexError):
+            qs[6]
+        self.assertEqual(run_query_calls, [(8, 8)])
 
     def test_invalid_index_type(self):
         qs = CounterQuerySet()
